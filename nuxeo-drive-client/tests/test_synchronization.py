@@ -762,3 +762,159 @@ class TestSynchronization(UnitTestCase):
             self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /'), "Folder 'trial ' should be created with trailing space in the name")
             self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /aFile.txt'), "trial/aFile.txt should sync")
             self.assertTrue(self.local_root_client_1.exists('/Nuxeo Drive Test Workspace/trial /bFile.txt'), "trial/bFile.txt should sync")
+
+    def test_rename_and_create_same_folder_running(self):
+        """
+        NXDRIVE-763: Fix issue when renaming a folder and creating a folder with the same name
+        while Drive client is running:
+
+        ValueError: Parent folder of /Nuxeo Drive Test Workspace/Folder01/subfolder01/Image02.jpg,
+            /Nuxeo Drive Test Workspace/Folder01/subfolder01 is not bound to a remote folder
+        """
+
+        local_1 = self.local_client_1
+        remote_1 = self.remote_document_client_1
+        local_2 = self.local_client_2
+        self.engine_1.start()
+        self.engine_2.start()
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+
+        # First, create initial folders and files
+        folder = remote_1.make_folder('/', 'Folder01')
+        remote_1.make_folder('/Folder01', 'subfolder01')
+        remote_1.make_file('/Folder01/subfolder01', 'Image01.jpg', b'42')
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+        self.assertTrue(remote_1.exists('/Folder01/subfolder01'))
+        self.assertTrue(remote_1.exists('/Folder01/subfolder01/Image01.jpg'))
+        self.assertTrue(local_1.exists('/Folder01/subfolder01'))
+        self.assertTrue(local_1.exists('/Folder01/subfolder01/Image01.jpg'))
+        self.assertTrue(local_2.exists('/Folder01/subfolder01'))
+        self.assertTrue(local_2.exists('/Folder01/subfolder01/Image01.jpg'))
+
+        # Make the local changes
+        local_2.rename('/Folder01/subfolder01', 'subfolder02')
+        local_2.make_folder('/Folder01', 'subfolder01')
+        local_2.make_file('/Folder01/subfolder01', 'Image02.jpg', b'42.42')
+        self.wait_sync(wait_for_async=True)
+
+        # Check client 2
+        self.assertTrue(local_2.exists('/Folder01/subfolder02'))
+        self.assertTrue(local_2.exists('/Folder01/subfolder02/Image01.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/subfolder02/Image01.jpg'), b'42')
+        self.assertTrue(local_2.exists('/Folder01/subfolder01'))
+        self.assertTrue(local_2.exists('/Folder01/subfolder01/Image02.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/subfolder01/Image02.jpg'), b'42.42')
+
+        # Check server
+        children = remote_1.get_children_info(folder)
+        self.assertEquals(len(children), 2)
+        subfolder = children[0]
+        self.assertEqual(subfolder.name, 'subfolder01')
+        file_path = '/Folder01/%s/Image02.jpg' % subfolder.path.rsplit('/', 1)[1]
+        self.assertTrue(remote_1.exists(file_path))
+        self.assertEqual(remote_1.get_content(file_path), b'42.42')
+        subfolder = children[1]
+        self.assertEqual(subfolder.name, 'subfolder02')
+        file_path = '/Folder01/%s/Image01.jpg' % subfolder.path.rsplit('/', 1)[1]
+        self.assertTrue(remote_1.exists(file_path))
+        self.assertEqual(remote_1.get_content(file_path), b'42')
+
+        # Check client 1
+        self.assertTrue(local_1.exists('/Folder01/subfolder02'))
+        self.assertTrue(local_1.exists('/Folder01/subfolder02/Image01.jpg'))
+        self.assertEqual(local_1.get_content('/Folder01/subfolder02/Image01.jpg'), b'42')
+        # TODO: uncomment when deduplication issue is fixed, see NXDRIVE-668
+        # and `test_rename_and_create_same_folder_not_running`
+#         self.assertTrue(local_1.exists('/Folder01/subfolder01'))
+#         self.assertTrue(local_1.exists('/Folder01/subfolder01/Image02.jpg'))
+#         self.assertEqual(local_1.get_content('/Folder01/subfolder01/Image02.jpg'), b'42.42')
+
+    def test_rename_and_create_same_file_running(self):
+        """
+        Same as `test_rename_and_create_same_folder_running` but with changes made on a file.
+        """
+
+        local_1 = self.local_client_1
+        remote_1 = self.remote_document_client_1
+        local_2 = self.local_client_2
+        self.engine_1.start()
+        self.engine_2.start()
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+
+        # First, create initial folders and files
+        folder = remote_1.make_folder('/', 'Folder01')
+        remote_1.make_file('/Folder01', 'Image01.jpg', b'42')
+        self.wait_sync(wait_for_async=True, wait_for_engine_2=True)
+        self.assertTrue(remote_1.exists('/Folder01/Image01.jpg'))
+        self.assertTrue(local_1.exists('/Folder01/Image01.jpg'))
+        self.assertTrue(local_2.exists('/Folder01/Image01.jpg'))
+
+        # Make the local changes
+        local_2.rename('/Folder01/Image01.jpg', 'Image02.jpg')
+        # Create a new file with the same name and content as the previously renamed file
+        local_2.make_file('/Folder01', 'Image01.jpg', b'42')
+        self.wait_sync(wait_for_async=True)
+
+        # Check client 2
+        self.assertTrue(local_2.exists('/Folder01/Image02.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/Image02.jpg'), b'42')
+        self.assertTrue(local_2.exists('/Folder01/Image01.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/Image01.jpg'), b'42')
+
+        # Check server
+        children = remote_1.get_children_info(folder)
+        self.assertEquals(len(children), 2)
+        file_ = children[0]
+        self.assertEqual(file_.name, 'Image01.jpg')
+        file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
+        self.assertEqual(remote_1.get_content(file_path), b'42')
+        file_ = children[1]
+        self.assertEqual(file_.name, 'Image02.jpg')
+        file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
+        self.assertEqual(remote_1.get_content(file_path), b'42')
+
+        # Check client 1
+        self.assertTrue(local_1.exists('/Folder01/Image02.jpg'))
+        self.assertEqual(local_1.get_content('/Folder01/Image02.jpg'), b'42')
+        # TODO: uncomment when deduplication issue is fixed, see NXDRIVE-668
+        # and `test_rename_and_create_same_file_not_running`
+#         self.assertTrue(local_1.exists('/Folder01/Image01.jpg'))
+#         self.assertEqual(local_1.get_content('/Folder01/Image01.jpg'), b'42')
+
+        # Make the local changes
+        local_2.rename('/Folder01/Image01.jpg', 'Image03.jpg')
+        # Create a new file with the same name as the previously renamed file but a different content
+        local_2.make_file('/Folder01', 'Image01.jpg', b'42.42')
+        self.wait_sync(wait_for_async=True)
+
+        # Check client 2
+        self.assertTrue(local_2.exists('/Folder01/Image03.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/Image03.jpg'), b'42')
+        self.assertTrue(local_2.exists('/Folder01/Image02.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/Image02.jpg'), b'42')
+        self.assertTrue(local_2.exists('/Folder01/Image01.jpg'))
+        self.assertEqual(local_2.get_content('/Folder01/Image01.jpg'), b'42.42')
+
+        # Check server
+        children = remote_1.get_children_info(folder)
+        self.assertEquals(len(children), 3)
+        file_ = children[0]
+        self.assertEqual(file_.name, 'Image01.jpg')
+        file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
+        self.assertEqual(remote_1.get_content(file_path), b'42.42')
+        file_ = children[1]
+        self.assertEqual(file_.name, 'Image02.jpg')
+        file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
+        self.assertEqual(remote_1.get_content(file_path), b'42')
+        file_ = children[2]
+        self.assertEqual(file_.name, 'Image03.jpg')
+        file_path = '/Folder01/%s' % file_.path.rsplit('/', 1)[1]
+        self.assertEqual(remote_1.get_content(file_path), b'42')
+
+        # Check client 1
+        self.assertTrue(local_1.exists('/Folder01/Image03.jpg'))
+        self.assertEqual(local_1.get_content('/Folder01/Image03.jpg'), b'42')
+        self.assertTrue(local_1.exists('/Folder01/Image02.jpg'))
+        self.assertEqual(local_1.get_content('/Folder01/Image02.jpg'), b'42')
+        self.assertTrue(local_1.exists('/Folder01/Image01.jpg'))
+        self.assertEqual(local_1.get_content('/Folder01/Image01.jpg'), b'42.42')
