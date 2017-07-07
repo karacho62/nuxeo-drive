@@ -286,7 +286,10 @@ launch_tests() {
         --exitfirst \
         --strict \
         --failed-first \
-        -r Efx
+        -r Efx \
+        --cov=nuxeo-drive-client/nxdrive \
+        --cov-report term-missing:skip-covered \
+        --cov-report xml:../coverage-${OSI}
 }
 
 start_nxdrive() {

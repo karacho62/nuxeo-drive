@@ -66,6 +66,11 @@ labels = [
     'SLAVE': 'GNU/Linux',
     'WINSLAVE': 'Windows'
 ]
+coverages = [
+    'OSXSLAVE-DRIVE': 'coverage-osx',
+    'SLAVE': 'coverage-linux',
+    'WINSLAVE': 'coverage-windows'
+]
 builders = [:]
 
 // GitHub stuff
@@ -156,6 +161,7 @@ for (def x in slaves) {
                         env.JAVA_HOME = "${jdk}"
                         def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
                         def platform_opt = "-Dplatform=${slave.toLowerCase()}"
+                        def coverage = coverages.get(slave)
 
                         dir('sources') {
                             // Set up the report name folder
@@ -182,8 +188,8 @@ for (def x in slaves) {
                             }
                         }
 
-                        // echo 'Retrieve coverage statistics'
-                        // archive 'coverage/*'
+                        echo 'Retrieve coverage statistics'
+                        stash includes: coverage, name: coverage
 
                         currentBuild.result = 'SUCCESS'
                     }
@@ -211,5 +217,24 @@ for (def x in slaves) {
 timeout(240) {
     timestamps {
         parallel builders
+
+        checkpoint 'combine'
+        node('SLAVE') {
+            def folders = ''
+            for (def coverage in coverages.values()) {
+                try {
+                    unstash coverage
+                    folders += " ${coverage}"
+                } catch(e) {}
+            }
+
+            sh """
+                virtualenv -p python2 venv
+                . venv/bin/activate
+                pip install coverage
+                coverage combine ${folders}
+                coverage xml
+            """
+        }
     }
 }
