@@ -220,28 +220,13 @@ timeout(240) {
         // Quality Assurance
         checkpoint 'combine'
         node('SLAVE') {
-            stage('Quality Assurance') {
-                dir('sources') {
-                    deleteDir()
-                }
-                checkout_custom()
-
-                dir('sources') {
-                    for (def coverage in coverages.values()) {
-                        try {
-                            unstash coverage
-                        } catch(e) {}
-                    }
-
-                    sh 'virtualenv -p python2 venv'
-                    sh '. venv/bin/activate'
-                    sh 'pip install coverage pylint'
-                    sh 'coverage combine .coverage_*'
-                    sh 'coverage xml'
-                    sh 'pylint nuxeo-drive-client/nxdrive > pylint_report.txt'
-                    sh 'sonar-scanner'
-                }
+            checkout scm
+            for (def coverage in coverages.values()) {
+                try {
+                    unstash coverage
+                } catch(e) {}
             }
+            sh 'tools/qa.sh'
         }
     }
 }
