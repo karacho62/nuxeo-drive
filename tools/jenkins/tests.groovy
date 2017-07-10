@@ -228,7 +228,7 @@ timeout(240) {
                 } catch(e) {}
             }
 
-            sh """
+            sh """#!/bin/bash -ex
                 virtualenv -p python2 venv
                 . venv/bin/activate
                 pip install coverage
