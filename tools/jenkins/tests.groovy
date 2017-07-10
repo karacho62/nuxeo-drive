@@ -67,9 +67,9 @@ labels = [
     'WINSLAVE': 'Windows'
 ]
 coverages = [
-    'OSXSLAVE-DRIVE': 'coverage-osx',
-    'SLAVE': 'coverage-linux',
-    'WINSLAVE': 'coverage-windows'
+    'OSXSLAVE-DRIVE': 'coverage_osx',
+    'SLAVE': 'coverage_linux',
+    'WINSLAVE': 'coverage_windows'
 ]
 builders = [:]
 
@@ -157,16 +157,15 @@ for (def x in slaves) {
                             error('Stopping early: apparently another slave did not try its best ...')
                         }
 
-                        def jdk = tool name: 'java-8-oracle'
-                        env.JAVA_HOME = "${jdk}"
-                        def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
-                        def platform_opt = "-Dplatform=${slave.toLowerCase()}"
-                        def coverage = coverages.get(slave)
-
                         dir('sources') {
-                            // Set up the report name folder
+                            def jdk = tool name: 'java-8-oracle'
+                            def mvnHome = tool name: 'maven-3.3', type: 'hudson.tasks.Maven$MavenInstallation'
+                            def platform_opt = '-Dplatform=' + slave.toLowerCase()
+                            def coverage = coverages.get(slave)
+                            env.JAVA_HOME = jdk
                             env.REPORT_PATH = env.WORKSPACE + '/sources'
                             env.TEST_REMOTE_SCAN_VOLUME = 100
+                            env.COVERAGE_FILE = '.' + coverage
 
                             try {
                                 if (osi == 'macOS') {
@@ -186,12 +185,12 @@ for (def x in slaves) {
                                 currentBuild.result = 'FAILURE'
                                 throw e
                             }
+
+                            echo 'Retrieve coverage statistics'
+                            stash includes: '.coverage*', name: coverage
+
+                            currentBuild.result = 'SUCCESS'
                         }
-
-                        echo 'Retrieve coverage statistics'
-                        stash includes: coverage, name: coverage
-
-                        currentBuild.result = 'SUCCESS'
                     }
                 } finally {
                     // We use catchError to not let notifiers and recorders change the current build status
@@ -218,23 +217,31 @@ timeout(240) {
     timestamps {
         parallel builders
 
+        // Quality Assurance
         checkpoint 'combine'
         node('SLAVE') {
-            def folders = ''
-            for (def coverage in coverages.values()) {
-                try {
-                    unstash coverage
-                    folders += " ${coverage}"
-                } catch(e) {}
-            }
+            stage('Quality Assurance') {
+                dir('sources') {
+                    deleteDir()
+                }
+                checkout_custom()
 
-            sh """#!/bin/bash -ex
-                virtualenv -p python2 venv
-                . venv/bin/activate
-                pip install coverage
-                coverage combine ${folders}
-                coverage xml
-            """
+                dir('sources') {
+                    for (def coverage in coverages.values()) {
+                        try {
+                            unstash coverage
+                        } catch(e) {}
+                    }
+
+                    sh 'virtualenv -p python2 venv'
+                    sh '. venv/bin/activate'
+                    sh 'pip install coverage pylint'
+                    sh 'coverage combine .coverage_*'
+                    sh 'coverage xml'
+                    sh 'pylint nuxeo-drive-client/nxdrive > pylint_report.txt'
+                    sh 'sonar-scanner'
+                }
+            }
         }
     }
 }

@@ -242,8 +242,7 @@ function launch_tests {
 		--failed-first `
 		-r Efx `
 		--cov=nuxeo-drive-client/nxdrive `
-		--cov-report term-missing:skip-covered `
-		--cov-report xml:../coverage-windows
+		--cov-report=
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
 	}

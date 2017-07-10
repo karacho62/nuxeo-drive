@@ -4,7 +4,7 @@ build
 .cache
 .classpath
 cover
-coverage
+coverage*
 .coverage
 debian
 dist
@@ -22,7 +22,9 @@ MANIFEST
 .project
 *.pyc
 .pydevproject
+pylint_report.txt
 .ropeproject
+.scannerwork
 .settings
 *.swp
 target

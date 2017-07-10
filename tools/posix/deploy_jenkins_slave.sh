@@ -288,8 +288,7 @@ launch_tests() {
         --failed-first \
         -r Efx \
         --cov=nuxeo-drive-client/nxdrive \
-        --cov-report term-missing:skip-covered \
-        --cov-report xml:../coverage-${OSI}
+        --cov-report=
 }
 
 start_nxdrive() {
