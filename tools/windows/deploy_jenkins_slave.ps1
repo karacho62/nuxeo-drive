@@ -296,7 +296,7 @@ function launch_tests {
 		--strict `
 		--failed-first `
 		-r Efx `
-		--cov=nuxeo-drive-client/nxdrive `
+		--cov=nuxeo-drive-client\nxdrive `
 		--cov-report=
 	if ($lastExitCode -ne 0) {
 		ExitWithCode $lastExitCode
