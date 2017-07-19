@@ -36,10 +36,9 @@ ln -sfv ${dmg} ${path}/drive/latest/nuxeo-drive.dmg
 ln -sfv ${msi} ${path}/drive/latest/nuxeo-drive.msi
 
 # Create symbolic links of the latest packages for all supported versions of Nuxeo
-for nuxeo_version in 6.0 7.10 8.10 9.1-SNAPSHOT; do
-    mkdir -pv ${path}/drive/latest/\$nuxeo_version
-    ln -sfv ${dmg} ${path}/drive/latest/\$nuxeo_version/nuxeo-drive.dmg
-    ln -sfv ${msi} ${path}/drive/latest/\$nuxeo_version/nuxeo-drive.msi
+for folder in \$(find ${path}/drive/latest -maxdepth 1 -type d); do
+    ln -sfv ${dmg} \$folder/nuxeo-drive.dmg
+    ln -sfv ${msi} \$folder/nuxeo-drive.msi
 done
 EOF
 
