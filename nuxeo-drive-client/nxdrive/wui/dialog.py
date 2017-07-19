@@ -13,12 +13,13 @@ from PyQt4.QtNetwork import QNetworkProxy, QNetworkProxyFactory, QSslCertificate
 from dateutil.tz import tzlocal
 
 from nxdrive.client.base_automation_client import Unauthorized
+from nxdrive.client.common import DEFAULT_BETA_SITE_URL
 from nxdrive.engine.activity import Action, FileAction
 from nxdrive.engine.dao.sqlite import StateRow
 from nxdrive.engine.engine import Engine
 from nxdrive.engine.workers import Worker
 from nxdrive.logging_config import get_logger
-from nxdrive.manager import FolderAlreadyUsed
+from nxdrive.manager import DEFAULT_UPDATE_SITE_URL, FolderAlreadyUsed
 from nxdrive.notification import Notification
 from nxdrive.updater import UPDATE_STATUS_UNAVAILABLE_SITE
 from nxdrive.wui.translator import Translator
@@ -545,7 +546,9 @@ class WebDriveApi(QtCore.QObject):
 
     @QtCore.pyqtSlot(result=str)
     def get_update_url(self):
-        return self._manager.get_version_finder(refresh_engines=True)
+        if self._manager.get_beta_channel():
+            return self._manager._dao.get_config('beta_update_url', DEFAULT_BETA_SITE_URL)
+        return self._manager._dao.get_config('update_url', DEFAULT_UPDATE_SITE_URL)
 
     @QtCore.pyqtSlot(int, int)
     def resize(self, width, height):
@@ -676,7 +679,7 @@ class WebDialog(QtGui.QDialog):
         super(WebDialog, self).resize(width * self._zoomFactor, height * self._zoomFactor)
 
     def _sslErrorHandler(self, reply, errorList):
-        log.warn('--- Bypassing SSL errors listed below ---')
+        log.warning('--- Bypassing SSL errors listed below ---')
         for error in errorList:
             certificate = error.certificate()
             o = str(certificate.issuerInfo(QSslCertificate.Organization))
@@ -685,8 +688,9 @@ class WebDialog(QtGui.QDialog):
             ou = str(certificate.issuerInfo(QSslCertificate.OrganizationalUnitName))
             c = str(certificate.issuerInfo(QSslCertificate.CountryName))
             st = str(certificate.issuerInfo(QSslCertificate.StateOrProvinceName))
-            log.warn('%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]', str(error.errorString()),
-                     o, cn, l, ou, c, st)
+            log.warning(
+                '%s, certificate: [o=%s, cn=%s, l=%s, ou=%s, c=%s, st=%s]',
+                str(error.errorString()), o, cn, l, ou, c, st)
         reply.ignoreSslErrors()
 
     def _set_proxy(self, manager, server_url=None):
