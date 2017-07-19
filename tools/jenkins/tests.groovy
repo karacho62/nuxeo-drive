@@ -155,7 +155,8 @@ for (def x in slaves) {
                     stage(osi + ' Tests') {
                         // Launch the tests suite
                         if (currentBuild.result == 'UNSTABLE' || currentBuild.result == 'FAILURE') {
-                            error('Stopping early: apparently another slave did not try its best ...')
+                            echo 'Stopping early: apparently another slave did not try its best ...'
+                            return
                         }
 
                         dir('sources') {
