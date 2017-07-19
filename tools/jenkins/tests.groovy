@@ -218,15 +218,18 @@ timeout(240) {
         parallel builders
 
         // Quality Assurance
-        checkpoint 'combine'
         node('SLAVE') {
-            checkout scm
-            for (def coverage in coverages.values()) {
-                try {
-                    unstash coverage
-                } catch(e) {}
+            try {
+                checkout scm
+                for (def coverage in coverages.values()) {
+                    try {
+                        unstash coverage
+                    } catch(e) {}
+                }
+                sh 'tools/qa.sh'
+            } catch(e) {
+                currentBuild.result = 'UNSTABLE'
             }
-            sh 'tools/qa.sh'
         }
     }
 }

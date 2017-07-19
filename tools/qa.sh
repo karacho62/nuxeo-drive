@@ -1,11 +1,12 @@
-#!/bin/sh -x
+#!/bin/sh
 #
 # Launch several QA tests. Sync with SonarCloud.
 #
 # Warning: do not execute this script manually but from Jenkins.
 #
+set -ex
 
-qa() {
+main() {
     virtualenv -p python2 venv
     . venv/bin/activate
     pip install coverage pylint
@@ -15,4 +16,4 @@ qa() {
     sonar-scanner
 }
 
-qa
+main
