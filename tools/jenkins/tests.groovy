@@ -229,7 +229,7 @@ timeout(240) {
                     } catch(e) {}
                 }
 
-                // Pipeline support add in SonarQube 2.5
+                // Pipeline support added in SonarQube 2.5
                 //def scanner_home = tool 'SonarQube Scanner 2.4'
                 //withSonarQubeEnv('My SonarQube Server') {
                 //    sh returnStdout: true, script: "tools/qa.sh ${scanner_home}/bin/sonar-scanner"
