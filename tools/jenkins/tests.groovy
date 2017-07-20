@@ -228,6 +228,12 @@ timeout(240) {
                         unstash coverage
                     } catch(e) {}
                 }
+
+                // Pipeline support add in SonarQube 2.5
+                //def scanner_home = tool 'SonarQube Scanner 2.4'
+                //withSonarQubeEnv('My SonarQube Server') {
+                //    sh returnStdout: true, script: "tools/qa.sh ${scanner_home}/bin/sonar-scanner"
+                //}
                 sh returnStdout: true, script: 'tools/qa.sh'
             } catch(e) {
                 currentBuild.result = 'UNSTABLE'
