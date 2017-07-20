@@ -228,7 +228,7 @@ timeout(240) {
                         unstash coverage
                     } catch(e) {}
                 }
-                sh 'tools/qa.sh'
+                sh './tools/qa.sh'
             } catch(e) {
                 currentBuild.result = 'UNSTABLE'
             }
