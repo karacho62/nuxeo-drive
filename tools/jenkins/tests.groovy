@@ -222,7 +222,11 @@ timeout(240) {
         // Quality Assurance
         node('SLAVE') {
             try {
-                checkout scm
+                checkout([$class: 'GitSCM',
+                    branches: [[name: env.BRANCH_NAME]],
+                    extensions: [[$class: 'WipeWorkspace']],
+                    userRemoteConfigs: [[url: 'git@github.com:nuxeo/nuxeo-drive.git']]
+                ])
                 for (def coverage in coverages.values()) {
                     try {
                         unstash coverage
