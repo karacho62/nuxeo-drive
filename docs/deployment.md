@@ -32,15 +32,15 @@ For both OSes, see [pyenv](https://github.com/yyuu/pyenv/wiki/Common-build-probl
 
 You will also need to install the Qt4 library, using HomeBrew:
 
-	brew install qt4
-	# if the previous command fails, try this one:
-	brew install cartr/qt4/qt
+    brew install qt4
+    # if the previous command fails, try this one:
+    brew install cartr/qt4/qt
 
 #### GNU/Linux
 
 You will also need to install the Qt4 qmake tool:
 
-	apt install qt4-make
+    apt install qt4-make
 
 ## Windows
 
@@ -69,7 +69,7 @@ Notes:
 If you get an error message complaining about the lack of signature for this script.
 You can disable that security check with the following command inside PowerShell:
 
-	Set-ExecutionPolicy Unrestricted
+    Set-ExecutionPolicy Unrestricted
 
 ## Environment Variables
 
