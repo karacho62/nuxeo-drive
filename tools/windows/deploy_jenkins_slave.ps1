@@ -348,7 +348,7 @@ function unzip($filename, $dest_dir) {
 
 function main {
 	# Adjust the PATH for compilation tools
-	$env:Path = "C:\Qt\4.8.7\bin;C:\mingw32\bin"
+	$env:Path = "C:\Qt\5.6.2\bin;C:\mingw32\bin"
 
 	# Launch operations
 	check_vars
