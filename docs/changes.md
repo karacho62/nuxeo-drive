@@ -27,6 +27,7 @@ Release date: `2017-08-31`
 - Account: Unset read-only when overwriting local folder
 - Tools: Updated `changelog.py` from 1.2.3 to 1.2.5
 - Tests: Use `QT_PATH` and `MINGW_PATH` envars on Windows
+- Tests: Use `COMPILE_WITH_DEBUG` envar, only revelant on GNU/Linux
 - Packaging: Updated `Js2Py` from 0.44 to 0.50
 - Packaging: Updated `Send2Trash` from 1.3.0 to 1.4.1
 - Packaging: Updated `pytest` from 3.1.3 to 3.2.1
